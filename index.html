@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rackhouse: gym management</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E3E5E1;--panel:#F8F8F5;--ink:#0F1B3D;--muted:#566079;--line:#C9CDD6;
+  --accent:#2D4BFF;--accent-ink:#fff;--chalk:#F5D547;--board:#0F1B3D;--boardtxt:#F8F8F5;
+  --ok:#0F7A45;--okbg:#D9F0E3;--warn:#7A5200;--warnbg:#FBEBB5;--bad:#B42A25;--badbg:#F9DAD7;--mutedbg:#E4E6EC;
+  --hover:rgba(15,27,61,.06);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1020;--panel:#151C32;--ink:#E9ECF8;--muted:#9AA4C2;--line:#2B3556;
+    --accent:#7F93FF;--accent-ink:#0B1020;--chalk:#F5D547;--board:#1F2B58;--boardtxt:#F4F5FB;
+    --ok:#5FD39A;--okbg:#143827;--warn:#F5D547;--warnbg:#3C3210;--bad:#FF8A82;--badbg:#42191A;--mutedbg:#232C4A;
+    --hover:rgba(233,236,248,.07);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1020;--panel:#151C32;--ink:#E9ECF8;--muted:#9AA4C2;--line:#2B3556;
+  --accent:#7F93FF;--accent-ink:#0B1020;--chalk:#F5D547;--board:#1F2B58;--boardtxt:#F4F5FB;
+  --ok:#5FD39A;--okbg:#143827;--warn:#F5D547;--warnbg:#3C3210;--bad:#FF8A82;--badbg:#42191A;--mutedbg:#232C4A;
+  --hover:rgba(233,236,248,.07);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif;background-color:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;align-self:start;height:100vh;padding:26px 16px;border-right:2px solid var(--ink);display:flex;flex-direction:column;gap:4px}
+.brand{font:700 34px/1 "Barlow Condensed",Impact,sans-serif;letter-spacing:.01em;padding:0 12px}
+.gym{color:var(--muted);font-size:14px;padding:2px 12px 22px}
+#nav{display:flex;flex-direction:column;gap:3px}
+.nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border:0;border-radius:6px;background:transparent;font-weight:600;font-size:17px;cursor:pointer;text-align:left}
+.nav:hover{background:var(--hover)}
+.nav[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.nav svg{width:21px;height:21px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+main{padding:30px clamp(16px,4vw,48px) 60px;max-width:1160px;width:100%}
+.pagehead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:22px}
+h1{font:700 clamp(40px,6vw,60px)/.95 "Barlow Condensed",Impact,sans-serif;margin:0;letter-spacing:.005em}
+h2{font:700 28px/1.1 "Barlow Condensed",Impact,sans-serif;margin:0 0 12px}
+h3{font:600 18px/1.2 Barlow,sans-serif;margin:0}
+.sub{margin:6px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:2px solid var(--ink);background:transparent;border-radius:6px;padding:8px 14px;font-weight:600;font-size:15px;cursor:pointer;line-height:1.2}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.small{padding:5px 10px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.panel{background:var(--panel);border:2px solid var(--ink);border-radius:10px}
+.pad{padding:18px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);background:var(--board);color:var(--boardtxt);border-radius:10px;overflow:hidden;margin-bottom:22px}
+.board>div{padding:16px 20px;border-left:1px solid rgba(255,255,255,.18)}
+.board>div:first-child{border-left:0}
+.board b{display:block;font:700 clamp(40px,6vw,64px)/1 "Barlow Condensed",Impact,sans-serif;color:var(--chalk)}
+.board span{font-size:15px;opacity:.85}
+.cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:22px;align-items:start}
+.rows{display:block}
+.row{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;padding:13px 16px;background:transparent;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--hover)}
+.time{font:700 28px/1 "Barlow Condensed",Impact,sans-serif}
+.grow b{display:block;font-weight:600}
+.grow small,.small{color:var(--muted);font-size:14px}
+.meter{height:8px;width:110px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:4px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.meter.full i{background:var(--ok)}
+.right{text-align:right;font-size:14px;color:var(--muted)}
+.right .meter{margin-left:auto}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;font-weight:600;font-size:13px;background:var(--mutedbg);color:var(--muted);white-space:nowrap}
+.chip.active,.chip.paid{background:var(--okbg);color:var(--ok)}
+.chip.past_due,.chip.failed,.chip.bad{background:var(--badbg);color:var(--bad)}
+.chip.frozen,.chip.due,.chip.warn{background:var(--warnbg);color:var(--warn)}
+.empty{padding:26px 18px;color:var(--muted)}
+.attn{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;padding:11px 16px;background:transparent;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+.attn:last-child{border-bottom:0}
+.attn:hover{background:var(--hover)}
+.chart{width:100%;height:auto;display:block}
+.chart text{font:500 12px Barlow,sans-serif;fill:var(--muted)}
+.chart .v{fill:var(--ink);font-weight:600}
+.chart rect{fill:var(--muted);opacity:.55}
+.chart rect.today{fill:var(--accent);opacity:1}
+.tabs,.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{flex:1 1 0;min-width:74px;border:2px solid var(--ink);background:transparent;border-radius:8px;padding:7px 6px;text-align:center;cursor:pointer;line-height:1.15}
+.tab b{display:block;font:700 22px/1 "Barlow Condensed",Impact,sans-serif}
+.tab small{color:inherit;opacity:.75;font-size:13px}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.pill{border:2px solid var(--line);background:transparent;border-radius:99px;padding:4px 13px;font-weight:600;font-size:14px;cursor:pointer}
+.pill[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.search{width:100%;padding:11px 14px;border:2px solid var(--line);border-radius:8px;background:var(--panel);margin-bottom:14px}
+.search:focus{border-color:var(--accent);outline:none}
+.big{font-size:24px;padding:16px 18px;border-color:var(--ink)}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:600;font-size:14px;color:var(--muted);padding:10px 14px;border-bottom:2px solid var(--ink);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr[data-act]{cursor:pointer}
+tbody tr[data-act]:hover{background:var(--hover)}
+td small{display:block;color:var(--muted);font-size:13px}
+.person{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.person:last-child{border-bottom:0}
+.person .nm{font-size:19px;font-weight:600}
+.person .why{color:var(--bad);font-size:14px;font-weight:500}
+.group{padding:12px 16px 4px;font:700 22px/1 "Barlow Condensed",Impact,sans-serif;background:var(--hover)}
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.plan{padding:18px;display:flex;flex-direction:column;gap:6px}
+.plan .price{font:700 46px/1 "Barlow Condensed",Impact,sans-serif}
+.plan .price small{font:500 16px Barlow,sans-serif;color:var(--muted)}
+.strip{display:flex;flex-wrap:wrap;gap:6px 34px;margin-bottom:16px}
+.strip b{font:700 34px/1.1 "Barlow Condensed",Impact,sans-serif;margin-right:6px}
+.note{color:var(--muted);font-size:14px;margin:14px 0 0;max-width:70ch}
+.foot{margin-top:40px;display:flex;gap:14px;flex-wrap:wrap}
+.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:14px}
+.scrim{position:fixed;inset:0;background:rgba(8,12,30,.6);display:grid;place-items:center;padding:14px;z-index:60}
+.modal{background:var(--panel);border:2px solid var(--ink);border-radius:12px;width:min(600px,100%);max-height:92vh;overflow:auto;padding:22px}
+.modal h2{font-size:34px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:block;margin-bottom:12px}
+.field>span{display:block;font-weight:600;font-size:14px;margin-bottom:3px}
+.field input,.field select,.field textarea{width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:6px;background:var(--bg)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);outline:none}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;align-items:center}
+.mfoot .spacer{margin-right:auto}
+.hist{margin:6px 0 14px;padding:0;list-style:none;font-size:15px}
+.hist li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line)}
+.sec{font-weight:600;margin:14px 0 0}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.toast.err{background:var(--bad);color:#fff}
+@media (min-width:821px){#toast{bottom:28px}}
+@media (max-width:980px){.cols{grid-template-columns:1fr}}
+@media (max-width:820px){
+  .app{display:block}
+  .side{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-right:0;border-top:2px solid var(--ink);background:var(--panel);z-index:40;flex-direction:row}
+  .brand,.gym{display:none}
+  #nav{flex-direction:row;width:100%;justify-content:space-between}
+  .nav{flex-direction:column;gap:2px;font-size:12px;padding:6px 4px;flex:1 1 0;align-items:center}
+  main{padding-bottom:110px}
+  .board{grid-template-columns:1fr 1fr}
+  .board>div:nth-child(3){border-left:0}
+  .board>div:nth-child(n+3){border-top:1px solid rgba(255,255,255,.18)}
+  .row{grid-template-columns:62px minmax(0,1fr)}
+  .row .right{grid-column:2}
+  .row .right .meter{margin-left:0}
+  .grid2{grid-template-columns:1fr}
+  .right{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">Rackhouse</div>
+    <div class="gym">Iron Mill Athletics (demo)</div>
+    <nav id="nav" aria-label="Main"></nav>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="modal"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const a=s.split('-').map(Number);return new Date(a[0],a[1]-1,a[2])};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const addMonth=(s,n)=>{const d=parse(s);d.setMonth(d.getMonth()+(n==null?1:n));return iso(d)};
+const TODAY=()=>iso(new Date());
+const dow=s=>parse(s).getDay();
+const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const fmtDate=(s,o)=>parse(s).toLocaleDateString(undefined,o||{month:'short',day:'numeric'});
+const fmtTime=t=>{let a=t.split(':').map(Number),h=a[0],m=a[1];const ap=h>=12?'pm':'am';h=h%12||12;return m?h+':'+pad(m)+' '+ap:h+' '+ap};
+const money=n=>'$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+const uid=()=>Math.random().toString(36).slice(2,9);
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const STATUS={active:'Active',frozen:'Frozen',past_due:'Past due',cancelled:'Cancelled'};
+const PTYPE={monthly:'Monthly membership',pack:'Class pack',dropin:'Drop-in'};
+
+/* ---------- data ---------- */
+const KEY='rackhouse.v1';
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function seed(){
+  const r=rng(11),T=TODAY();
+  const plans=[
+    {id:'p_unl',name:'Unlimited',price:149,type:'monthly',credits:0},
+    {id:'p_stu',name:'Student unlimited',price:109,type:'monthly',credits:0},
+    {id:'p_open',name:'Open gym',price:79,type:'monthly',credits:0},
+    {id:'p_10',name:'10-class pack',price:120,type:'pack',credits:10},
+    {id:'p_drop',name:'Drop-in',price:20,type:'dropin',credits:1}
+  ];
+  const classes=[];
+  const add=(name,coach,days,time,cap,dur)=>days.forEach(d=>classes.push({id:uid(),name,coach,day:d,time,capacity:cap,duration:dur}));
+  add('Strength','Dana Whitlock',[1,3,5],'06:00',14,60);
+  add('Conditioning','Marcus Hale',[1,2,3,4,5],'12:00',16,45);
+  add('Evening WOD','Priya Nair',[1,2,3,4,5],'17:30',18,60);
+  add('Mobility','Dana Whitlock',[2,4],'19:00',12,45);
+  add('Team session','Marcus Hale',[6],'09:00',20,75);
+  add('Open gym','',[0],'10:00',25,120);
+  const names=['Maya Okafor','Jordan Reyes','Tom Whitfield','Alicia Brandt','Devon Carter','Sofia Lindqvist','Ben Alvarez','Chloe Park','Isaac Moreno','Hannah Fischer','Luis Ortega','Nadia Haddad','Ryan Kowalski','Grace Tanaka','Elijah Brooks','Zoe Delgado','Omar Siddiqui','Lena Petrov','Caleb Monroe','Amara Johnson','Wes Nakamura','Rosa Bianchi','Dmitri Volkov','Keisha Grant','Theo Lambert','Imani Cole','Felix Nguyen','Marta Kowal'];
+  const F={},quiet=new Set();let packN=0;
+  const members=names.map((n,i)=>{
+    const x=r();let planId=x<.4?'p_unl':x<.55?'p_stu':x<.7?'p_open':x<.9?'p_10':'p_drop';
+    let status='active';
+    if(i===5||i===11)status='frozen';
+    if(i===8||i===19)status='past_due';
+    if(i===23)status='cancelled';
+    if(status==='frozen'||status==='past_due')planId=r()<.5?'p_unl':'p_open';
+    const plan=plans.find(p=>p.id===planId);
+    let credits=0;
+    if(plan.type==='pack'){packN++;credits=packN===1?1:packN===2?2:1+Math.floor(r()*9)}
+    if(plan.type==='dropin')credits=r()<.5?1:0;
+    let renews='';
+    if(plan.type==='monthly')renews=status==='past_due'?addDays(T,-5):addDays(T,Math.floor(r()*30)-3);
+    const joined=i>=25?addDays(T,-3-(i-25)*3):addDays(T,-20-Math.floor(r()*500));
+    F[i]=status==='active'?.25+r()*.75:.08;
+    if(i===3||i===14||i===22){quiet.add(i);F[i]=.4}
+    const first=n.split(' ')[0].toLowerCase(),last=n.split(' ')[1].toLowerCase();
+    return{id:'m'+i,name:n,email:first+'.'+last+'@example.com',phone:'770-555-01'+pad(10+i),planId,status,credits,joined,renews,notes:''};
+  });
+  const bookings={},checkins=[],payments=[];
+  const pickN=(pool,k)=>{const out=[];let g=0;while(out.length<k&&g++<600){const m=pool[Math.floor(r()*pool.length)];if(m&&out.indexOf(m.id)<0&&r()<F[+m.id.slice(1)])out.push(m.id)}return out};
+  const cut=addDays(T,-16),hm=nowHM();
+  for(let off=-30;off<=7;off++){
+    const date=addDays(T,off),cs=classes.filter(c=>c.day===dow(date));
+    cs.forEach(c=>{
+      const key=c.id+'|'+date;
+      if(off<0){
+        const pool=members.filter(m=>m.joined<=date&&m.status!=='cancelled'&&!(quiet.has(+m.id.slice(1))&&date>cut));
+        pickN(pool,Math.round(c.capacity*(.2+.4*r()))).forEach(id=>checkins.push({id:uid(),memberId:id,date,time:c.time,classKey:key}));
+      }else{
+        const pool=members.filter(m=>m.status==='active'&&!quiet.has(+m.id.slice(1)));
+        const full=r()<.12;
+        const k=full?Math.min(c.capacity,pool.length-3):Math.round(c.capacity*(.3+.45*r()));
+        const ids=full?pool.slice(0,k).map(m=>m.id):pickN(pool,k);
+        const wait=full?pool.slice(k,k+2).map(m=>m.id):[];
+        bookings[key]={roster:ids,wait};
+        if(off===0&&c.time<=hm)ids.forEach(id=>{if(r()<.75)checkins.push({id:uid(),memberId:id,date,time:c.time,classKey:key})});
+      }
+    });
+    if(off<0){
+      const pool=members.filter(m=>m.joined<=date&&m.status==='active'&&!(quiet.has(+m.id.slice(1))&&date>cut));
+      pickN(pool,2+Math.floor(r()*4)).forEach(id=>checkins.push({id:uid(),memberId:id,date,time:'15:00',classKey:null}));
+    }
+  }
+  members.forEach(m=>{
+    const p=plans.find(x=>x.id===m.planId);
+    if(p.type==='monthly'){
+      if(m.status==='past_due')payments.push({id:uid(),memberId:m.id,amount:p.price,date:m.renews,status:'failed',desc:p.name+' renewal'});
+      for(let k=1;k<=3;k++){const d=addMonth(m.renews,-k);if(d<=T&&d>=m.joined)payments.push({id:uid(),memberId:m.id,amount:p.price,date:d,status:'paid',desc:p.name+' renewal'})}
+    }else if(m.status!=='cancelled'){
+      payments.push({id:uid(),memberId:m.id,amount:p.price,date:addDays(T,-Math.floor(r()*28)),status:'paid',desc:p.name})
+    }
+  });
+  payments.push({id:uid(),memberId:'m26',amount:149,date:addDays(T,-1),status:'due',desc:'Unlimited, first month'});
+  return{plans,classes,members,bookings,checkins,payments};
+}
+function load(){try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&d.members&&d.classes)return d}}catch(e){}return seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+let db=load();
+
+/* ---------- domain helpers ---------- */
+const planOf=m=>db.plans.find(p=>p.id===m.planId);
+const mem=id=>db.members.find(m=>m.id===id);
+const cls=id=>db.classes.find(c=>c.id===id);
+const getB=k=>db.bookings[k]||{roster:[],wait:[]};
+const ensureB=k=>db.bookings[k]||(db.bookings[k]={roster:[],wait:[]});
+const attended=k=>db.checkins.filter(x=>x.classKey===k);
+const isIn=(id,k)=>db.checkins.some(x=>x.classKey===k&&x.memberId===id);
+const instOf=k=>{const p=k.split('|');return{c:cls(p[0]),date:p[1],key:k}};
+const instancesOn=d=>db.classes.filter(c=>c.day===dow(d)).sort((a,b)=>a.time.localeCompare(b.time)).map(c=>({c,date:d,key:c.id+'|'+d}));
+const classLabel=k=>{const c=cls(k.split('|')[0]);return c?c.name:'Class'};
+const byName=(a,b)=>a.name.localeCompare(b.name);
+function lastVisits(){const m={};db.checkins.forEach(x=>{if(!m[x.memberId]||m[x.memberId]<x.date)m[x.memberId]=x.date});return m}
+function visits30(){const m={},from=addDays(TODAY(),-30);db.checkins.forEach(x=>{if(x.date>=from)m[x.memberId]=(m[x.memberId]||0)+1});return m}
+function blockReason(m){
+  if(m.status==='cancelled')return 'Membership cancelled';
+  if(m.status==='frozen')return 'Membership frozen';
+  const p=planOf(m);if(p&&p.type!=='monthly'&&m.credits<1)return 'No credits left';
+  return '';
+}
+function book(id,key){
+  const m=mem(id),c=cls(key.split('|')[0]);if(!m||!c)return{ok:false,msg:'Class not found'};
+  const bad=blockReason(m);if(bad)return{ok:false,msg:bad+': '+m.name+' can’t book'};
+  const b=ensureB(key);
+  if(b.roster.includes(id)||b.wait.includes(id))return{ok:false,msg:m.name+' is already on this class'};
+  if(b.roster.length<c.capacity){b.roster.push(id);save();return{ok:true,msg:m.name+' booked'}}
+  b.wait.push(id);save();return{ok:true,msg:m.name+' added to the waitlist'};
+}
+function unbook(id,key){
+  const b=ensureB(key),c=cls(key.split('|')[0]);
+  const was=b.roster.indexOf(id);
+  b.roster=b.roster.filter(x=>x!==id);b.wait=b.wait.filter(x=>x!==id);
+  if(was>=0&&b.wait.length&&c&&b.roster.length<c.capacity){const n=b.wait.shift();b.roster.push(n);toast((mem(n)||{}).name+' moved off the waitlist')}
+  save();
+}
+function checkIn(id,o){
+  o=o||{};const m=mem(id);if(!m)return{ok:false,msg:'Member not found'};const T=TODAY();
+  const bad=blockReason(m);if(bad&&!o.override)return{ok:false,msg:bad};
+  if(o.key){if(isIn(id,o.key))return{ok:false,msg:m.name+' is already checked in'}}
+  else if(db.checkins.some(x=>x.memberId===id&&x.date===T&&!x.classKey))return{ok:false,msg:m.name+' already checked in today'};
+  db.checkins.push({id:uid(),memberId:id,date:T,time:nowHM(),classKey:o.key||null});
+  const p=planOf(m);if(p&&p.type!=='monthly')m.credits=Math.max(0,m.credits-1);
+  if(o.key){const b=ensureB(o.key);b.wait=b.wait.filter(x=>x!==id);if(!b.roster.includes(id))b.roster.push(id)}
+  save();
+  return{ok:true,msg:m.name+' checked in'+(o.key?' to '+classLabel(o.key):''),warn:m.status==='past_due'};
+}
+function nextBookedKey(id){
+  const nm=nowHM(),list=instancesOn(TODAY()).filter(i=>getB(i.key).roster.includes(id)&&!isIn(id,i.key));
+  const mins=t=>{const a=t.split(':').map(Number);return a[0]*60+a[1]};
+  list.sort((a,b)=>Math.abs(mins(a.c.time)-mins(nm))-Math.abs(mins(b.c.time)-mins(nm)));
+  return list[0]?list[0].key:null;
+}
+function addPayment(id,amount,desc,status){db.payments.push({id:uid(),memberId:id,amount,date:TODAY(),status:status||'paid',desc})}
+function settle(m){
+  const T=TODAY();if(m.status==='past_due')m.status='active';
+  const p=planOf(m);if(p&&p.type==='monthly'&&(!m.renews||m.renews<=T))m.renews=addMonth(m.renews&&m.renews>addDays(T,-60)?m.renews:T,1);
+}
+function runRenewals(){
+  const T=TODAY();let ok=0,fail=0;
+  db.members.forEach(m=>{
+    const p=planOf(m);
+    if(m.status==='active'&&p&&p.type==='monthly'&&m.renews&&m.renews<=T){
+      if(Math.random()<.88){addPayment(m.id,p.price,p.name+' renewal','paid');m.renews=addMonth(m.renews,1);ok++}
+      else{addPayment(m.id,p.price,p.name+' renewal','failed');m.status='past_due';fail++}
+    }
+  });
+  save();return{ok,fail};
+}
+
+/* ---------- ui state ---------- */
+const ROUTES=['today','checkin','schedule','members','billing','plans'];
+const routeFromHash=()=>{const h=location.hash.replace('#','');return ROUTES.includes(h)?h:'today'};
+const ui={view:routeFromHash(),sdate:TODAY(),mq:'',mf:'all',cq:'',rq:'',bf:'all',modal:null};
+
+const IC={
+  today:'<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="5"/><rect x="13" y="10" width="8" height="11"/><rect x="3" y="13" width="8" height="8"/>',
+  checkin:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',
+  schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  members:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14c2.6 0 4.5 1.8 4.5 4.5"/>',
+  billing:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>',
+  plans:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>'
+};
+const NAV=[['today','Today'],['checkin','Check-in'],['schedule','Schedule'],['members','Members'],['billing','Billing'],['plans','Plans']];
+
+function toast(msg,err){
+  const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;$('#toast').appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+/* ---------- views ---------- */
+function classRow(i){
+  const T=TODAY(),b=getB(i.key),att=attended(i.key).length,past=i.date<T,cap=i.c.capacity;
+  const n=past?att:b.roster.length,pct=Math.min(100,Math.round(n/cap*100));
+  let st;
+  if(past)st=att+' attended';
+  else{
+    st=b.roster.length>=cap?'Full'+(b.wait.length?', '+b.wait.length+' waiting':''):b.roster.length+' of '+cap+' booked';
+    if(i.date===T&&att)st+=', '+att+' in';
+  }
+  return `<button class="row" data-act="class" data-key="${esc(i.key)}">
+    <span class="time">${fmtTime(i.c.time)}</span>
+    <span class="grow"><b>${esc(i.c.name)}</b><small>${i.c.coach?'Coach '+esc(i.c.coach):'No coach assigned'}, ${i.c.duration} min</small></span>
+    <span class="right"><div class="meter${n>=cap?' full':''}"><i style="width:${pct}%"></i></div>${esc(st)}</span></button>`;
+}
+function chart14(){
+  const T=TODAY(),cnt={};db.checkins.forEach(x=>{cnt[x.date]=(cnt[x.date]||0)+1});
+  const days=[];for(let i=13;i>=0;i--){const d=addDays(T,-i);days.push({d,n:cnt[d]||0})}
+  const max=Math.max(5,...days.map(x=>x.n)),w=560,h=170,bw=(w-20)/14;
+  let s=`<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Check-ins per day for the last 14 days">`;
+  days.forEach((x,i)=>{
+    const bh=Math.round(x.n/max*(h-50)),bx=10+i*bw+5,by=h-24-bh;
+    s+=`<rect class="${x.d===T?'today':''}" x="${bx}" y="${by}" width="${bw-10}" height="${bh}" rx="3"/>`;
+    s+=`<text class="v" x="${bx+(bw-10)/2}" y="${by-5}" text-anchor="middle">${x.n}</text>`;
+    s+=`<text x="${bx+(bw-10)/2}" y="${h-7}" text-anchor="middle">${'SMTWTFS'[dow(x.d)]}</text>`;
+  });
+  return s+'</svg>';
+}
+function viewToday(){
+  const T=TODAY(),act=db.members.filter(m=>m.status==='active').length;
+  const ci=db.checkins.filter(x=>x.date===T).length;
+  const mrr=db.members.filter(m=>m.status==='active'&&planOf(m)&&planOf(m).type==='monthly').reduce((s,m)=>s+planOf(m).price,0);
+  const owed=db.payments.filter(p=>p.status!=='paid').reduce((s,p)=>s+p.amount,0);
+  const inst=instancesOn(T),last=lastVisits(),items=[];
+  db.members.forEach(m=>{
+    const p=planOf(m);
+    if(m.status==='past_due')items.push({m,why:'Payment past due',tone:'bad'});
+    else if(m.status==='active'&&p){
+      if(p.type==='pack'&&m.credits<=2)items.push({m,why:m.credits+' credit'+(m.credits===1?'':'s')+' left',tone:'warn'});
+      else if(p.type==='monthly'){const lv=last[m.id],gap=lv?daysBetween(lv,T):999;if(gap>=14)items.push({m,why:lv?'No visit in '+gap+' days':'Has not visited yet',tone:'warn'})}
+    }
+  });
+  return `<header class="pagehead"><div><h1>Today</h1><p class="sub">${fmtDate(T,{weekday:'long',month:'long',day:'numeric'})}</p></div>
+    <div class="actions"><button class="btn primary" data-act="nav" data-v="checkin">Open check-in</button><button class="btn" data-act="new-member">Add member</button></div></header>
+  <section class="board" aria-label="Gym totals">
+    <div><b>${act}</b><span>Active members</span></div>
+    <div><b>${ci}</b><span>Check-ins today</span></div>
+    <div><b>${money(mrr)}</b><span>Monthly recurring revenue</span></div>
+    <div><b>${money(owed)}</b><span>Unpaid or failed</span></div></section>
+  <div class="cols">
+    <section><h2>Today’s classes</h2><div class="panel rows">${inst.length?inst.map(classRow).join(''):'<p class="empty">No classes today. Add one from the Schedule.</p>'}</div>
+      <h2 style="margin-top:26px">Check-ins, last 14 days</h2><div class="panel pad">${chart14()}</div></section>
+    <section><h2>Needs attention</h2><div class="panel rows">${items.length?items.slice(0,9).map(x=>`<button class="attn" data-act="member" data-id="${x.m.id}"><span><b>${esc(x.m.name)}</b><br><span class="small">${esc(planOf(x.m)?planOf(x.m).name:'No plan')}</span></span><span class="chip ${x.tone}">${esc(x.why)}</span></button>`).join(''):'<p class="empty">Nobody needs follow-up right now.</p>'}</div></section>
+  </div>`;
+}
+
+function checkinResults(){
+  const q=ui.cq.trim().toLowerCase(),T=TODAY();
+  const card=(m,key)=>{
+    const bad=blockReason(m),p=planOf(m);
+    const meta=`${esc(p?p.name:'No plan')} <span class="chip ${m.status}">${STATUS[m.status]}</span>${p&&p.type!=='monthly'?` <span class="small">${m.credits} credit${m.credits===1?'':'s'}</span>`:''}`;
+    return `<div class="person"><div><div class="nm">${esc(m.name)}</div><div>${meta}</div>${bad?`<div class="why">${esc(bad)}</div>`:(m.status==='past_due'?'<div class="why">Payment past due. Collect at the desk.</div>':'')}</div>
+      <button class="btn ${bad?'':'primary'}" data-act="ci" data-id="${m.id}" ${key?`data-key="${esc(key)}"`:''} ${bad?'data-ov="1"':''}>${bad?'Override and check in':'Check in'}</button></div>`;
+  };
+  if(q){
+    const res=db.members.filter(m=>m.name.toLowerCase().includes(q)).sort(byName).slice(0,8);
+    if(!res.length)return '<div class="panel empty">No member matches that name. Add them from Members, or record a drop-in payment.</div>';
+    return `<div class="panel">${res.map(m=>card(m,nextBookedKey(m.id))).join('')}</div>`;
+  }
+  let html='';
+  instancesOn(T).forEach(i=>{
+    const waiting=getB(i.key).roster.filter(id=>!isIn(id,i.key)).map(mem).filter(Boolean);
+    if(waiting.length)html+=`<div class="group">${fmtTime(i.c.time)} ${esc(i.c.name)}</div>`+waiting.map(m=>card(m,i.key)).join('');
+  });
+  return html?`<div class="panel" style="overflow:hidden">${html}</div>`:'<div class="panel empty">Nobody booked is waiting to check in. Search above for a walk-in.</div>';
+}
+function viewCheckin(){
+  return `<header class="pagehead"><div><h1>Check-in</h1><p class="sub">Search a name. Booked members appear below until they arrive.</p></div></header>
+  <label><span class="sr">Find a member</span><input id="ci-q" class="search big" data-q="checkin" type="search" placeholder="Type a member’s name" autocomplete="off" value="${esc(ui.cq)}"></label>
+  <div id="ci-results">${checkinResults()}</div>`;
+}
+
+function viewSchedule(){
+  const T=TODAY(),d=parse(ui.sdate),mon=addDays(ui.sdate,-((d.getDay()+6)%7));
+  let tabs='';
+  for(let i=0;i<7;i++){const x=addDays(mon,i);tabs+=`<button class="tab" data-act="sday" data-date="${x}" aria-pressed="${x===ui.sdate}"><small>${fmtDate(x,{weekday:'short'})}${x===T?' (today)':''}</small><b>${parse(x).getDate()}</b><small>${instancesOn(x).length} class${instancesOn(x).length===1?'':'es'}</small></button>`}
+  const inst=instancesOn(ui.sdate);
+  return `<header class="pagehead"><div><h1>Schedule</h1><p class="sub">Week of ${fmtDate(mon)} to ${fmtDate(addDays(mon,6))}</p></div>
+    <div class="actions"><button class="btn" data-act="sweek" data-n="-7">Previous week</button><button class="btn" data-act="sweek" data-n="0">This week</button><button class="btn" data-act="sweek" data-n="7">Next week</button><button class="btn primary" data-act="new-class">Add class</button></div></header>
+  <div class="tabs" role="group" aria-label="Day of week">${tabs}</div>
+  <h2>${fmtDate(ui.sdate,{weekday:'long',month:'long',day:'numeric'})}</h2>
+  <div class="panel rows">${inst.length?inst.map(classRow).join(''):'<p class="empty">No classes on this day. Use Add class to put one on the weekly schedule.</p>'}</div>`;
+}
+
+function memberTable(){
+  const q=ui.mq.trim().toLowerCase(),last=lastVisits(),v30=visits30();
+  const list=db.members.filter(m=>(ui.mf==='all'||m.status===ui.mf)&&(!q||m.name.toLowerCase().includes(q)||m.email.toLowerCase().includes(q))).sort(byName);
+  if(!list.length)return '<div class="panel empty">No members match. Clear the search or pick a different filter.</div>';
+  return `<div class="panel tbl-wrap"><table><thead><tr><th>Member</th><th>Plan</th><th>Status</th><th>Visits, 30 days</th><th>Last visit</th><th>Renews or credits</th></tr></thead><tbody>${list.map(m=>{
+    const p=planOf(m);
+    return `<tr data-act="member" data-id="${m.id}" tabindex="0"><td><b>${esc(m.name)}</b><small>${esc(m.email)}</small></td><td>${esc(p?p.name:'None')}</td><td><span class="chip ${m.status}">${STATUS[m.status]}</span></td><td>${v30[m.id]||0}</td><td>${last[m.id]?fmtDate(last[m.id]):'Never'}</td><td>${p&&p.type==='monthly'?(m.renews?fmtDate(m.renews):'None'):m.credits+' left'}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+function viewMembers(){
+  const cnt=s=>s==='all'?db.members.length:db.members.filter(m=>m.status===s).length;
+  const chips=['all','active','frozen','past_due','cancelled'].map(s=>`<button class="pill" data-act="mf" data-s="${s}" aria-pressed="${ui.mf===s}">${s==='all'?'All':STATUS[s]} (${cnt(s)})</button>`).join('');
+  return `<header class="pagehead"><div><h1>Members</h1><p class="sub">${db.members.length} on file</p></div><div class="actions"><button class="btn primary" data-act="new-member">Add member</button></div></header>
+  <label><span class="sr">Search members</span><input class="search" data-q="members" type="search" placeholder="Search by name or email" value="${esc(ui.mq)}"></label>
+  <div class="chips" role="group" aria-label="Filter by status">${chips}</div><div id="mem-list">${memberTable()}</div>`;
+}
+
+function viewBilling(){
+  const T=TODAY(),mo=T.slice(0,7);
+  const got=db.payments.filter(p=>p.status==='paid'&&p.date.slice(0,7)===mo).reduce((s,p)=>s+p.amount,0);
+  const owed=db.payments.filter(p=>p.status!=='paid').reduce((s,p)=>s+p.amount,0);
+  const dueSoon=db.members.filter(m=>m.status==='active'&&m.renews&&m.renews<=T).length;
+  const list=db.payments.filter(p=>ui.bf==='all'||p.status===ui.bf).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
+  const chips=['all','paid','due','failed'].map(s=>`<button class="pill" data-act="bf" data-s="${s}" aria-pressed="${ui.bf===s}">${s==='all'?'All':s[0].toUpperCase()+s.slice(1)}</button>`).join('');
+  return `<header class="pagehead"><div><h1>Billing</h1><p class="sub">Payments and renewals</p></div><div class="actions"><button class="btn" data-act="run-renewals">Run renewals${dueSoon?' ('+dueSoon+' due)':''}</button><button class="btn primary" data-act="new-pay">Record payment</button></div></header>
+  <div class="strip"><span><b>${money(got)}</b>collected this month</span><span><b>${money(owed)}</b>unpaid or failed</span><span><b>${dueSoon}</b>renewals due now</span></div>
+  <div class="chips" role="group" aria-label="Filter payments">${chips}</div>
+  <div class="panel tbl-wrap"><table><thead><tr><th>Date</th><th>Member</th><th>Description</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(p=>{const m=mem(p.memberId);return `<tr><td>${fmtDate(p.date)}</td><td>${m?`<a href="#members" data-act="member" data-id="${m.id}" style="color:inherit;font-weight:600">${esc(m.name)}</a>`:'Removed member'}</td><td>${esc(p.desc)}</td><td>${money(p.amount)}</td><td><span class="chip ${p.status}">${p.status==='paid'?'Paid':p.status==='due'?'Due':'Failed'}</span></td><td>${p.status!=='paid'?`<button class="btn small" data-act="mark-paid" data-id="${p.id}">Mark paid</button>`:''}</td></tr>`}).join(''):'<tr><td colspan="6" class="empty">No payments in this view.</td></tr>'}</tbody></table></div>
+  <p class="note">This demo tracks payments inside the app. No cards are charged. To bill members for real, connect a payment processor such as Stripe.</p>`;
+}
+
+function viewPlans(){
+  return `<header class="pagehead"><div><h1>Plans</h1><p class="sub">What members can buy</p></div><div class="actions"><button class="btn primary" data-act="new-plan">Add plan</button></div></header>
+  <div class="plans">${db.plans.map(p=>{
+    const n=db.members.filter(m=>m.planId===p.id&&m.status!=='cancelled').length;
+    return `<article class="panel plan"><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}<small>${p.type==='monthly'?' per month':p.type==='pack'?' for '+p.credits+' classes':' per visit'}</small></div>
+    <div class="small">${PTYPE[p.type]}</div><div>${n} member${n===1?'':'s'}${p.type==='monthly'?', '+money(n*p.price)+' per month':''}</div>
+    <div style="margin-top:8px"><button class="btn small" data-act="edit-plan" data-id="${p.id}">Edit plan</button></div></article>`}).join('')}</div>`;
+}
+
+const views={today:viewToday,checkin:viewCheckin,schedule:viewSchedule,members:viewMembers,billing:viewBilling,plans:viewPlans};
+
+/* ---------- modals ---------- */
+const fld=(label,html)=>`<label class="field"><span>${label}</span>${html}</label>`;
+const inp=(f,v,t,x)=>`<input data-f="${f}" type="${t||'text'}" value="${esc(v)}" ${x||''}>`;
+const opts=(list,sel)=>list.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(sel)?'selected':''}>${esc(o[1])}</option>`).join('');
+function mHead(t){return `<h2>${esc(t)}</h2>`}
+
+function modalMember(m){
+  const d=m.draft,p=db.plans.find(x=>x.id===d.planId),monthly=!p||p.type==='monthly';
+  let hist='';
+  if(!m.isNew){
+    const v=db.checkins.filter(x=>x.memberId===d.id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,5);
+    const pay=db.payments.filter(x=>x.memberId===d.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
+    hist=`<p class="sec">Recent visits</p><ul class="hist">${v.length?v.map(x=>`<li><span>${fmtDate(x.date)}, ${x.classKey?esc(classLabel(x.classKey)):'Open gym'}</span><span class="small">${fmtTime(x.time)}</span></li>`).join(''):'<li><span class="small">No visits yet</span></li>'}</ul>
+    <p class="sec">Recent payments</p><ul class="hist">${pay.length?pay.map(x=>`<li><span>${fmtDate(x.date)}, ${esc(x.desc)}</span><span class="chip ${x.status}">${money(x.amount)}</span></li>`).join(''):'<li><span class="small">No payments yet</span></li>'}</ul>
+    <div class="actions"><button class="btn small" data-act="mem-checkin">Check in now</button><button class="btn small" data-act="mem-pay">Record payment</button></div>`;
+  }
+  return `${mHead(m.isNew?'Add member':d.name||'Member')}
+  <div class="grid2">${fld('Name',inp('name',d.name,'text','autocomplete="off"'))}${fld('Email',inp('email',d.email,'email'))}${fld('Phone',inp('phone',d.phone,'tel'))}
+  ${fld('Plan',`<select data-f="planId">${opts(db.plans.map(x=>[x.id,x.name+' ('+money(x.price)+')']),d.planId)}</select>`)}
+  ${fld('Status',`<select data-f="status">${opts(Object.keys(STATUS).map(k=>[k,STATUS[k]]),d.status)}</select>`)}
+  ${monthly?fld('Next renewal',inp('renews',d.renews,'date')):fld('Credits left',inp('credits',d.credits,'number','min="0"'))}</div>
+  ${fld('Notes',`<textarea data-f="notes" rows="2">${esc(d.notes)}</textarea>`)}
+  ${hist}
+  <div class="mfoot">${m.isNew?'':(m.confirmDel?'<button class="btn danger spacer" data-act="mem-del-yes">Confirm delete</button>':'<button class="btn danger spacer" data-act="mem-del">Delete member</button>')}<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="mem-save">${m.isNew?'Add member':'Save changes'}</button></div>`;
+}
+function rosterResults(){
+  const m=ui.modal;if(!m||m.type!=='roster')return '';
+  const q=ui.rq.trim().toLowerCase();if(!q)return '<p class="small">Type a name to book a member.</p>';
+  const b=getB(m.key);
+  const res=db.members.filter(x=>x.status!=='cancelled'&&!b.roster.includes(x.id)&&!b.wait.includes(x.id)&&x.name.toLowerCase().includes(q)).sort(byName).slice(0,6);
+  return res.length?res.map(x=>`<div class="person" style="padding:8px 0"><span>${esc(x.name)} <span class="chip ${x.status}">${STATUS[x.status]}</span></span><button class="btn small" data-act="book" data-id="${x.id}">Book</button></div>`).join(''):'<p class="small">No available member matches.</p>';
+}
+function modalRoster(m){
+  const i=instOf(m.key);if(!i.c)return '<p>This class no longer exists.</p>';
+  const T=TODAY(),b=getB(m.key),past=i.date<T,cap=i.c.capacity;
+  const row=(id,wait)=>{const x=mem(id);if(!x)return '';const inn=isIn(id,m.key);
+    return `<div class="person" style="padding:9px 0"><span><b>${esc(x.name)}</b> <span class="chip ${x.status}">${STATUS[x.status]}</span></span><span class="actions">${inn?'<span class="chip active">Checked in</span>':(i.date===T&&!wait?`<button class="btn small primary" data-act="rs-ci" data-id="${id}">Check in</button>`:'')}<button class="btn small" data-act="unbook" data-id="${id}" aria-label="Remove ${esc(x.name)}">Remove</button></span></div>`};
+  let body;
+  if(past){const a=attended(m.key);body=`<p class="sec">Attended (${a.length})</p>${a.length?a.map(x=>`<div class="person" style="padding:8px 0"><span>${esc((mem(x.memberId)||{name:'Removed member'}).name)}</span><span class="small">${fmtTime(x.time)}</span></div>`).join(''):'<p class="small">Nobody was checked in.</p>'}`}
+  else body=`<p class="sec">Booked (${b.roster.length} of ${cap})</p>${b.roster.length?b.roster.map(id=>row(id,false)).join(''):'<p class="small">Nobody booked yet.</p>'}
+    ${b.wait.length?`<p class="sec">Waitlist (${b.wait.length})</p>${b.wait.map(id=>row(id,true)).join('')}`:''}
+    <p class="sec">Add a member</p><input id="rs-q" class="search" data-q="roster" type="search" placeholder="Search by name" value="${esc(ui.rq)}" autocomplete="off"><div id="rs-results">${rosterResults()}</div>`;
+  return `${mHead(i.c.name)}<p class="sub">${fmtDate(i.date,{weekday:'long',month:'long',day:'numeric'})}, ${fmtTime(i.c.time)}${i.c.coach?', Coach '+esc(i.c.coach):''}</p>${body}
+  <div class="mfoot"><button class="btn spacer" data-act="edit-class" data-id="${i.c.id}">Edit class</button><button class="btn primary" data-act="close">Done</button></div>`;
+}
+function modalClass(m){
+  const d=m.draft;
+  return `${mHead(m.isNew?'Add class':'Edit class')}<p class="sub">Classes repeat weekly on the day you pick.</p>
+  <div class="grid2">${fld('Class name',inp('name',d.name,'text'))}${fld('Coach',inp('coach',d.coach,'text'))}
+  ${fld('Day',`<select data-f="day">${opts(DAYS.map((x,i)=>[i,x]),d.day)}</select>`)}${fld('Start time',inp('time',d.time,'time'))}
+  ${fld('Capacity',inp('capacity',d.capacity,'number','min="1"'))}${fld('Length in minutes',inp('duration',d.duration,'number','min="10"'))}</div>
+  <div class="mfoot">${m.isNew?'':(m.confirmDel?'<button class="btn danger spacer" data-act="cls-del-yes">Confirm delete</button>':'<button class="btn danger spacer" data-act="cls-del">Delete class</button>')}<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="cls-save">Save class</button></div>`;
+}
+function modalPlan(m){
+  const d=m.draft;
+  return `${mHead(m.isNew?'Add plan':'Edit plan')}<div class="grid2">${fld('Plan name',inp('name',d.name,'text'))}${fld('Price',inp('price',d.price,'number','min="0" step="0.01"'))}
+  ${fld('Type',`<select data-f="type">${opts(Object.keys(PTYPE).map(k=>[k,PTYPE[k]]),d.type)}</select>`)}
+  ${d.type==='pack'?fld('Classes in pack',inp('credits',d.credits,'number','min="1"')):''}</div>
+  <div class="mfoot">${m.isNew?'':(m.confirmDel?'<button class="btn danger spacer" data-act="plan-del-yes">Confirm delete</button>':'<button class="btn danger spacer" data-act="plan-del">Delete plan</button>')}<button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="plan-save">Save plan</button></div>`;
+}
+function modalPay(m){
+  const d=m.draft,x=mem(d.memberId),p=x&&planOf(x);
+  return `${mHead('Record payment')}${fld('Member',`<select data-f="memberId">${opts(db.members.slice().sort(byName).map(y=>[y.id,y.name]),d.memberId)}</select>`)}
+  <div class="grid2">${fld('Amount',inp('amount',d.amount,'number','min="0" step="0.01"'))}${fld('Description',inp('desc',d.desc,'text'))}</div>
+  ${p&&p.type!=='monthly'?`<p class="small">This plan is a ${p.type==='pack'?'class pack':'drop-in'}. Saving adds ${p.credits} credit${p.credits===1?'':'s'}.</p>`:'<p class="small">Saving marks any past-due status as settled and moves the renewal date forward.</p>'}
+  <div class="mfoot"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="pay-save">Save payment</button></div>`;
+}
+function modalReset(){
+  return `${mHead('Reset demo data')}<p>This replaces everything in the app with fresh sample members, classes, and payments. Your changes will be lost.</p>
+  <div class="mfoot"><button class="btn" data-act="close">Cancel</button><button class="btn danger" data-act="reset-yes">Reset everything</button></div>`;
+}
+function renderModal(focus){
+  const root=$('#modal'),m=ui.modal;
+  if(!m){root.innerHTML='';return}
+  const body={member:modalMember,roster:modalRoster,class:modalClass,plan:modalPlan,pay:modalPay,reset:modalReset}[m.type](m);
+  root.innerHTML=`<div class="scrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.type)}">${body}</div></div>`;
+  if(focus){const f=root.querySelector('input:not([type=search]),select,button');if(f)f.focus();}
+}
+function openModal(m){ui.modal=m;if(m.type==='roster')ui.rq='';renderModal(true)}
+function closeModal(){ui.modal=null;renderModal();}
+
+function openMember(id){
+  const m=mem(id);if(!m)return;
+  openModal({type:'member',isNew:false,draft:Object.assign({},m)});
+}
+function newMember(){
+  const p=db.plans[0];
+  openModal({type:'member',isNew:true,draft:{id:'m'+uid(),name:'',email:'',phone:'',planId:p?p.id:'',status:'active',credits:p&&p.type!=='monthly'?p.credits:0,joined:TODAY(),renews:addMonth(TODAY(),1),notes:''}});
+}
+
+/* ---------- render ---------- */
+function render(){
+  $('#nav').innerHTML=NAV.map(n=>`<button class="nav" data-act="nav" data-v="${n[0]}" ${ui.view===n[0]?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${IC[n[0]]}</svg>${n[1]}</button>`).join('');
+  let theme='';try{theme=localStorage.getItem('rackhouse.theme')||''}catch(e){}
+  if(theme)document.documentElement.setAttribute('data-theme',theme);
+  $('#main').innerHTML=views[ui.view]()+`<div class="foot"><button class="link" data-act="theme">Switch light or dark mode</button><button class="link" data-act="reset">Reset demo data</button></div>`;
+  renderModal();
+}
+
+/* ---------- events ---------- */
+function afterChange(){save();render()}
+document.addEventListener('click',e=>{
+  if(e.target.classList&&e.target.classList.contains('scrim')){closeModal();return}
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const a=el.dataset.act,d=el.dataset,m=ui.modal;
+  if(el.tagName==='A')e.preventDefault();
+  switch(a){
+    case 'nav':ui.view=d.v;try{history.replaceState(null,'','#'+d.v)}catch(x){}render();window.scrollTo(0,0);if(d.v==='checkin'){const q=$('#ci-q');if(q)q.focus()}break;
+    case 'theme':{const cur=document.documentElement.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const nx=cur==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',nx);try{localStorage.setItem('rackhouse.theme',nx)}catch(x){}break}
+    case 'reset':openModal({type:'reset'});break;
+    case 'reset-yes':db=seed();closeModal();afterChange();toast('Demo data reset');break;
+    case 'close':closeModal();break;
+    case 'member':openMember(d.id);break;
+    case 'new-member':newMember();break;
+    case 'mem-save':{
+      const x=m.draft;if(!x.name.trim()){toast('Enter the member’s name',true);break}
+      const p=db.plans.find(y=>y.id===x.planId);if(p&&p.type!=='monthly')x.renews='';
+      if(m.isNew){db.members.push(Object.assign({},x,{name:x.name.trim()}))}
+      else Object.assign(mem(x.id),x,{name:x.name.trim()});
+      closeModal();afterChange();toast(m.isNew?'Member added':'Changes saved');break}
+    case 'mem-del':m.confirmDel=true;renderModal();break;
+    case 'mem-del-yes':{const id=m.draft.id;db.members=db.members.filter(x=>x.id!==id);Object.keys(db.bookings).forEach(k=>{const b=db.bookings[k];b.roster=b.roster.filter(x=>x!==id);b.wait=b.wait.filter(x=>x!==id)});closeModal();afterChange();toast('Member deleted');break}
+    case 'mem-checkin':{const id=m.draft.id,r=checkIn(id,{key:nextBookedKey(id)});m.draft.credits=mem(id).credits;toast(r.msg+(r.warn?'. Payment is past due.':''),!r.ok);renderModal();render();break}
+    case 'mem-pay':openModal({type:'pay',draft:{memberId:m.draft.id,amount:(planOf(mem(m.draft.id))||{price:0}).price,desc:(planOf(mem(m.draft.id))||{name:'Payment'}).name}});break;
+    case 'class':openModal({type:'roster',key:d.key});break;
+    case 'book':{const r=book(d.id,m.key);toast(r.msg,!r.ok);ui.rq='';renderModal();render();break}
+    case 'unbook':unbook(d.id,m.key);renderModal();render();break;
+    case 'rs-ci':{const r=checkIn(d.id,{key:m.key});toast(r.msg,!r.ok);renderModal();render();break}
+    case 'edit-class':{const c=cls(d.id);openModal({type:'class',isNew:false,draft:Object.assign({},c)});break}
+    case 'new-class':openModal({type:'class',isNew:true,draft:{id:uid(),name:'',coach:'',day:dow(ui.sdate),time:'18:00',capacity:16,duration:60}});break;
+    case 'cls-save':{
+      const x=m.draft;if(!x.name.trim()){toast('Enter a class name',true);break}
+      x.day=Number(x.day);x.capacity=Math.max(1,Number(x.capacity)||1);x.duration=Number(x.duration)||60;
+      if(m.isNew)db.classes.push(x);else Object.assign(cls(x.id),x);
+      closeModal();afterChange();toast('Class saved');break}
+    case 'cls-del':m.confirmDel=true;renderModal();break;
+    case 'cls-del-yes':{const id=m.draft.id;db.classes=db.classes.filter(c=>c.id!==id);Object.keys(db.bookings).forEach(k=>{if(k.indexOf(id+'|')===0)delete db.bookings[k]});closeModal();afterChange();toast('Class deleted');break}
+    case 'sday':ui.sdate=d.date;render();break;
+    case 'sweek':ui.sdate=d.n==='0'?TODAY():addDays(ui.sdate,Number(d.n));render();break;
+    case 'mf':ui.mf=d.s;render();break;
+    case 'bf':ui.bf=d.s;render();break;
+    case 'ci':{
+      const r=checkIn(d.id,{key:d.key||null,override:!!d.ov});
+      toast(r.msg+(r.warn?'. Payment is past due.':''),!r.ok);
+      if(r.ok){ui.cq='';render();const q=$('#ci-q');if(q)q.focus()}else $('#ci-results').innerHTML=checkinResults();break}
+    case 'new-plan':openModal({type:'plan',isNew:true,draft:{id:'p_'+uid(),name:'',price:99,type:'monthly',credits:10}});break;
+    case 'edit-plan':openModal({type:'plan',isNew:false,draft:Object.assign({},db.plans.find(p=>p.id===d.id))});break;
+    case 'plan-save':{
+      const x=m.draft;if(!x.name.trim()){toast('Enter a plan name',true);break}
+      x.credits=x.type==='dropin'?1:x.type==='monthly'?0:Math.max(1,Number(x.credits)||1);
+      if(m.isNew)db.plans.push(x);else Object.assign(db.plans.find(p=>p.id===x.id),x);
+      closeModal();afterChange();toast('Plan saved');break}
+    case 'plan-del':m.confirmDel=true;renderModal();break;
+    case 'plan-del-yes':{const n=db.members.filter(x=>x.planId===m.draft.id).length;if(n){toast('Move '+n+' member'+(n===1?'':'s')+' to another plan first',true);m.confirmDel=false;renderModal();break}db.plans=db.plans.filter(p=>p.id!==m.draft.id);closeModal();afterChange();toast('Plan deleted');break}
+    case 'run-renewals':{const r=runRenewals();render();toast(r.ok+r.fail?`Renewals run: ${r.ok} charged, ${r.fail} failed`:'No renewals are due today');break}
+    case 'mark-paid':{const p=db.payments.find(x=>x.id===d.id);if(p){p.status='paid';const x=mem(p.memberId);if(x)settle(x)}afterChange();toast('Marked as paid');break}
+    case 'new-pay':{const f=db.members.slice().sort(byName)[0];openModal({type:'pay',draft:{memberId:f.id,amount:(planOf(f)||{price:0}).price,desc:(planOf(f)||{name:'Payment'}).name}});break}
+    case 'pay-save':{
+      const x=m.draft,y=mem(x.memberId),amt=Number(x.amount);if(!y||!(amt>0)){toast('Enter an amount above zero',true);break}
+      addPayment(y.id,amt,x.desc||'Payment','paid');
+      const p=planOf(y);if(p&&p.type!=='monthly')y.credits+=p.credits;else settle(y);
+      const wasMember=ui.modal.fromMember;closeModal();afterChange();toast('Payment recorded');break}
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target,ds=t.dataset;
+  if(ds.q){
+    if(ds.q==='members'){ui.mq=t.value;$('#mem-list').innerHTML=memberTable()}
+    else if(ds.q==='checkin'){ui.cq=t.value;$('#ci-results').innerHTML=checkinResults()}
+    else if(ds.q==='roster'){ui.rq=t.value;$('#rs-results').innerHTML=rosterResults()}
+    return;
+  }
+  if(ds.f&&ui.modal&&ui.modal.draft){
+    const dr=ui.modal.draft;
+    dr[ds.f]=t.type==='number'?(parseFloat(t.value)||0):t.value;
+    if(ds.f==='planId'&&ui.modal.type==='member'){const p=db.plans.find(x=>x.id===dr.planId);dr.credits=p&&p.type!=='monthly'?p.credits:0;if(p&&p.type==='monthly'&&!dr.renews)dr.renews=addMonth(TODAY(),1);renderModal()}
+    if(ds.f==='type'&&ui.modal.type==='plan')renderModal();
+    if(ds.f==='memberId'&&ui.modal.type==='pay'){const p=planOf(mem(dr.memberId));dr.amount=p?p.price:0;dr.desc=p?p.name:'Payment';renderModal()}
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&ui.modal)closeModal();
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('tr[data-act]')){e.preventDefault();e.target.click()}
+});
+window.addEventListener('hashchange',()=>{const v=routeFromHash();if(v!==ui.view){ui.view=v;render()}});
+render();
+})();
+</script>
+</body>
+</html>
